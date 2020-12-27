@@ -1,13 +1,7 @@
 const Article = require('../models/article');
 const Forbidden = require('../errors/forbidden');
 const NotFoundError = require('../errors/not-found-err');
-const {
-  BAD_REQUEST_ERROR_CODE,
-  FORBIDDEN_MESSAGE,
-  INCORRECT_ID_MESSAGE,
-  CAST_ERROR,
-  VALIDATION_ERROR,
-} = require('../utils/errorsMessages');
+const { ERROR_CODE } = require('../utils/errorsMessages');
 
 // возвращаем все сохраненные пользователем статьи
 const getArticles = async (req, res, next) => {
@@ -16,8 +10,8 @@ const getArticles = async (req, res, next) => {
     const articles = await Article.find({ owner });
     res.send(articles);
   } catch (err) {
-    if (err.name === CAST_ERROR) {
-      err.statusCode = BAD_REQUEST_ERROR_CODE;
+    if (err.name === 'CastError') {
+      err.statusCode = ERROR_CODE;
     }
     next(err);
   }
@@ -37,8 +31,8 @@ const createArticle = async (req, res, next) => {
       keyword, title, text, date, source, link, image,
     });
   } catch (err) {
-    if (err.name === CAST_ERROR || err.name === VALIDATION_ERROR) {
-      err.statusCode = BAD_REQUEST_ERROR_CODE;
+    if (err.name === 'CastError' || err.name === 'ValidationError') {
+      err.statusCode = ERROR_CODE;
     }
     next(err);
   }
@@ -51,15 +45,15 @@ const deleteArticle = async (req, res, next) => {
     const { articleId } = req.params;
     const articleForConfirm = await Article.findById(articleId).select('+owner');
     if (articleForConfirm === null) {
-      throw new NotFoundError(INCORRECT_ID_MESSAGE('статьи'));
+      throw new NotFoundError('Нет карточки с таким id');
     } else if (currentUser !== articleForConfirm.owner.toString()) {
-      throw new Forbidden(FORBIDDEN_MESSAGE);
+      throw new Forbidden('Вы не владелец карточки и не можете её удалить');
     }
     const confirmedArticle = await Article.findByIdAndRemove(articleId);
     res.send(confirmedArticle);
   } catch (err) {
-    if (err.name === CAST_ERROR) {
-      err.statusCode = BAD_REQUEST_ERROR_CODE;
+    if (err.name === 'CastError') {
+      err.statusCode = ERROR_CODE;
     }
     next(err);
   }

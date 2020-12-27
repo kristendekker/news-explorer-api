@@ -4,13 +4,7 @@ const Unautorized = require('../errors/unauthorized');
 const ConflictingRequest = require('../errors/conflicting-request');
 const NotFoundError = require('../errors/not-found-err');
 const jwtSign = require('../utils/jwt-sign');
-const {
-  BAD_REQUEST_ERROR_CODE,
-  LOGIN_FAIL_MESSAGE,
-  REPEATED_EMAIL_ERROR_MESSAGE,
-  INCORRECT_ID_MESSAGE,
-  CAST_ERROR,
-} = require('../utils/errorsMessages');
+const { ERROR_CODE } = require('../utils/errorsMessages');
 
 // возвращаем информацию о пользователе
 const getCurrentUser = async (req, res, next) => {
@@ -18,12 +12,12 @@ const getCurrentUser = async (req, res, next) => {
     const user = await User.findById(req.user.id);
     const { email, name } = user;
     if (!user) {
-      throw new NotFoundError(INCORRECT_ID_MESSAGE('пользователя'));
+      throw new NotFoundError('Нет пользователя с таким id');
     }
     res.send({ email, name });
   } catch (err) {
-    if (err.name === CAST_ERROR) {
-      err.statusCode = BAD_REQUEST_ERROR_CODE;
+    if (err.name === 'CastError') {
+      err.statusCode = ERROR_CODE;
     }
     next(err);
   }
@@ -36,7 +30,7 @@ const createUser = (req, res, next) => {
   User.findOne({ email })
     .then((user) => {
       if (user) {
-        throw new ConflictingRequest(REPEATED_EMAIL_ERROR_MESSAGE);
+        throw new ConflictingRequest('Уже есть такой email');
       }
       return bcrypt.hash(password, 10);
     })
@@ -55,12 +49,12 @@ const login = (req, res, next) => {
   return User.findOne({ email }).select('+password')
     .then((user) => {
       if (!user) {
-        throw new Unautorized(LOGIN_FAIL_MESSAGE);
+        throw new Unautorized('Неправильные почта или пароль');
       }
       return bcrypt.compare(password, user.password)
         .then((matched) => {
           if (!matched) {
-            throw new Unautorized(LOGIN_FAIL_MESSAGE);
+            throw new Unautorized('Неправильные почта или пароль');
           }
           const token = jwtSign(user._id);
           res.send({ token });
